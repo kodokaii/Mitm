@@ -10,10 +10,7 @@ LDLIBS		=
 KDO			= kdolib
 KDOLIB		= $(KDO)/kdolib.a
 
-SRC			= Mitm.cpp\
-			  Socket.cpp\
-			  SocketTcpClient.cpp\
-			  SocketTcpServer.cpp
+SRC			= Mitm.cpp
 
 OBJ 		= $(SRC:.cpp=.o)
 

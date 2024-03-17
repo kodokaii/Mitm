@@ -6,17 +6,14 @@
 /*   By: nlaerema <nlaerema@student.42lehavre.fr>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/07/05 10:58:17 by nlaerema          #+#    #+#             */
-/*   Updated: 2024/03/08 10:53:23 by nlaerema         ###   ########.fr       */
+/*   Updated: 2024/03/17 23:10:07 by nlaerema         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include <csignal>
-#include <iomanip>
 #include <sys/epoll.h>
-#include "SocketTcpClient.hpp"
-#include "SocketTcpServer.hpp"
+#include "kdolib/kdolib.hpp"
 
 class Mitm: protected SocketTcpClient, protected SocketTcpServer
 {
