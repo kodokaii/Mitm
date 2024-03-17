@@ -1,0 +1,8 @@
+*.txt
+*.pdf
+*.swp
+*.swo
+*.o
+a.out
+kdolib
+mitm
