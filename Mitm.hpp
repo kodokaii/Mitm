@@ -15,7 +15,7 @@
 #include <sys/epoll.h>
 #include "kdolib/kdolib.hpp"
 
-class Mitm: protected SocketTcpClient, protected SocketTcpServer
+class Mitm: protected TcpClient, protected TcpServer
 {
 	private:
 		std::map<int, std::string>	lineBuf;

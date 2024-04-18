@@ -67,19 +67,19 @@ void	Mitm::printLine(int clientSocket, std::string const &msg, bool out)
 
 int		Mitm::loop(void)
 {
-	struct epoll_event	events[this->SocketTcpServer::getBacklog()];
+	struct epoll_event	events[this->TcpServer::getBacklog()];
 	int					readyFd;
 
 	std::signal(SIGINT, sigintHandler);
 	while (!g_sigint)
 	{
-		readyFd = epoll_wait(this->epoll, events, this->SocketTcpServer::getBacklog(), -1);
+		readyFd = epoll_wait(this->epoll, events, this->TcpServer::getBacklog(), -1);
 		for (int i(0); i < readyFd; i++)
 		{
 			if (events[i].events & (EPOLLRDHUP | EPOLLHUP))
 			{
-				if (events[i].data.fd == this->SocketTcpServer::getFd()
-					|| events[i].data.fd == this->SocketTcpClient::getFd())
+				if (events[i].data.fd == this->TcpServer::getFd()
+					|| events[i].data.fd == this->TcpClient::getFd())
 				{
 					std::signal(SIGINT, SIG_DFL);
 					std::cerr << "connection closed" << std::endl;
@@ -90,10 +90,10 @@ int		Mitm::loop(void)
 			}
 			else
 			{
-				if (events[i].data.fd == this->SocketTcpServer::getFd())
+				if (events[i].data.fd == this->TcpServer::getFd())
 					this->connectClient();
-				else if (events[i].data.fd == this->SocketTcpClient::getFd())
-					this->receive_out(this->SocketTcpClient::getFd());
+				else if (events[i].data.fd == this->TcpClient::getFd())
+					this->receive_out(this->TcpClient::getFd());
 				else
 					this->receive_in(events[i].data.fd);
 			}
@@ -105,40 +105,40 @@ int		Mitm::loop(void)
 
 int		Mitm::receive_in(int clientSocket)
 {
-	SocketTcpClient const	*client;
+	TcpClient const	*client;
 	std::string				msg;
 
-	if (this->SocketTcpServer::getClient(client, clientSocket))
+	if (this->TcpServer::getClient(client, clientSocket))
 		return (EXIT_FAILURE);
 	if (client->recv(msg, MSG_DONTWAIT) < 0)
 		return (EXIT_FAILURE);
 	this->printLine(clientSocket, msg, false);
-	return (0 <= this->SocketTcpClient::send(msg));
+	return (0 <= this->TcpClient::send(msg));
 }
 
 int		Mitm::receive_out(int clientSocket)
 {
 	std::string	msg;
 
-	if (this->SocketTcpClient::recv(msg, MSG_DONTWAIT) < 0)
+	if (this->TcpClient::recv(msg, MSG_DONTWAIT) < 0)
 		return (EXIT_FAILURE);
 	this->printLine(clientSocket, msg, true);
-	return (this->SocketTcpServer::broadcast(msg));
+	return (this->TcpServer::broadcast(msg));
 }
 
 int		Mitm::connectClient(void)
 {
-	SocketTcpClient	const	*newClient;
+	TcpClient	const	*newClient;
 	struct epoll_event		event = {};
 
-	if (this->SocketTcpServer::accept(newClient))
+	if (this->TcpServer::accept(newClient))
 		return (perror("accept"), EXIT_ERRNO);
 	event.events = EPOLLIN | EPOLLRDHUP;
 	event.data.fd = newClient->getFd();
 	if (epoll_ctl(this->epoll, EPOLL_CTL_ADD, newClient->getFd(), &event))
 	{
 		perror("epoll_ctl");
-		this->SocketTcpServer::disconnectClient(newClient->getFd());
+		this->TcpServer::disconnectClient(newClient->getFd());
 		return (EXIT_ERRNO);
 	}
 	std::cout << "[" << newClient->getFd() << "]: connect" << std::endl;
@@ -147,7 +147,7 @@ int		Mitm::connectClient(void)
 
 int		Mitm::disconnectClient(int clientSocket)
 {
-	this->SocketTcpServer::disconnectClient(clientSocket);
+	this->TcpServer::disconnectClient(clientSocket);
 	std::cout << "[" << clientSocket << "]: disconnect" << std::endl;
 	return (epoll_ctl(this->epoll, EPOLL_CTL_DEL, clientSocket, NULL));
 }
@@ -162,7 +162,7 @@ int		Mitm::connect(std::string const &addr, std::string const &inPort, std::stri
 	struct epoll_event  event = {};
 	int					error;
 
-	error = this->SocketTcpClient::connect(addr, outPort);
+	error = this->TcpClient::connect(addr, outPort);
 	if (error)
 	{
 		if (error != EXIT_ERRNO)
@@ -171,41 +171,41 @@ int		Mitm::connect(std::string const &addr, std::string const &inPort, std::stri
 			perror("connection out failed");
 		return (error);
 	}
-	error = this->SocketTcpServer::connect(inPort);
+	error = this->TcpServer::connect(inPort);
 	if (error)
 	{
 		if (error != EXIT_ERRNO)
 			std::cout << "ip error: " << gai_strerror(error) << std::endl;
 		else
 			perror("connection in failed");
-		this->SocketTcpServer::disconnect();
+		this->TcpServer::disconnect();
 		return (error);
 	}
-	this->epoll = epoll_create(this->SocketTcpServer::getBacklog());
+	this->epoll = epoll_create(this->TcpServer::getBacklog());
 	if (this->epoll == INVALID_FD)
 	{
 		perror("epoll_create");
-		this->SocketTcpServer::disconnect();
-		this->SocketTcpClient::disconnect();
+		this->TcpServer::disconnect();
+		this->TcpClient::disconnect();
 		return (EXIT_ERRNO);
 	}
 	event.events = EPOLLIN | EPOLLRDHUP;
-	event.data.fd = this->SocketTcpClient::getFd();
-	if (epoll_ctl(this->epoll, EPOLL_CTL_ADD, this->SocketTcpClient::getFd(), &event))
+	event.data.fd = this->TcpClient::getFd();
+	if (epoll_ctl(this->epoll, EPOLL_CTL_ADD, this->TcpClient::getFd(), &event))
 	{
 		perror("epoll_ctl");
-		this->SocketTcpServer::disconnect();
-		this->SocketTcpClient::disconnect();
+		this->TcpServer::disconnect();
+		this->TcpClient::disconnect();
 		::close(this->epoll);
 		return (EXIT_ERRNO);
 	}
 	event.events = EPOLLIN | EPOLLRDHUP;
-	event.data.fd = this->SocketTcpServer::getFd();
-	if (epoll_ctl(this->epoll, EPOLL_CTL_ADD, this->SocketTcpServer::getFd(), &event))
+	event.data.fd = this->TcpServer::getFd();
+	if (epoll_ctl(this->epoll, EPOLL_CTL_ADD, this->TcpServer::getFd(), &event))
 	{
 		perror("epoll_ctl");
-		this->SocketTcpServer::disconnect();
-		this->SocketTcpClient::disconnect();
+		this->TcpServer::disconnect();
+		this->TcpClient::disconnect();
 		::close(this->epoll);
 		return (EXIT_ERRNO);
 	}
@@ -214,22 +214,22 @@ int		Mitm::connect(std::string const &addr, std::string const &inPort, std::stri
 
 bool	Mitm::isConnected(void)
 {
-	return (this->SocketTcpClient::isConnected() && this->SocketTcpServer::isConnected());
+	return (this->TcpClient::isConnected() && this->TcpServer::isConnected());
 }
 
 void	Mitm::disconnect(void)
 {
-	this->SocketTcpClient::disconnect();
-	this->SocketTcpServer::disconnect();
+	this->TcpClient::disconnect();
+	this->TcpServer::disconnect();
 	if (this->epoll != INVALID_FD)
 		::close(epoll);
 }
 
 int		Mitm::getAddrError(void)
 {
-	if (this->SocketTcpClient::getAddrError())
-		return (this->SocketTcpClient::getAddrError());
-	return (this->SocketTcpServer::getAddrError());
+	if (this->TcpClient::getAddrError())
+		return (this->TcpClient::getAddrError());
+	return (this->TcpServer::getAddrError());
 }
 
 int	main(void)

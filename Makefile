@@ -4,7 +4,7 @@ CXX			= c++
 RM			= rm -f
 CLONE 		= git clone --depth=1
 
-CXXFLAGS	+= -Wall -Wextra -Werror -std=c++98 -I.
+CXXFLAGS	+= -Wall -Wextra -Werror -std=c++98
 LDLIBS		=
 
 KDO			= kdolib
