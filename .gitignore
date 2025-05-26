@@ -3,5 +3,6 @@
 *.swp
 *.swo
 *.o
+.vscode
 a.out
 mitm

@@ -12,9 +12,9 @@
 
 #include "Mitm.hpp"
 
-static int	g_sigint(0);
+static int g_sigint(0);
 
-void	sigintHandler(int sig)
+void sigintHandler(int sig)
 {
 	if (sig == SIGINT)
 	{
@@ -23,16 +23,16 @@ void	sigintHandler(int sig)
 	}
 }
 
-Mitm::Mitm(void): epoll(INVALID_FD)
+Mitm::Mitm(void) : epoll(INVALID_FD)
 {
 }
 
-Mitm::Mitm(std::string const &addr, std::string const &port):	epoll(INVALID_FD)
+Mitm::Mitm(std::string const &addr, std::string const &port) : epoll(INVALID_FD)
 {
 	this->connect(addr, port);
 }
 
-Mitm::Mitm(std::string const &addr, std::string const &inPort, std::string const &outPort):	epoll(INVALID_FD)
+Mitm::Mitm(std::string const &addr, std::string const &inPort, std::string const &outPort) : epoll(INVALID_FD)
 {
 	this->connect(addr, inPort, outPort);
 }
@@ -43,11 +43,11 @@ Mitm::~Mitm(void)
 		::close(epoll);
 }
 
-void	Mitm::printLine(int clientSocket, std::string const &msg, bool out)
+void Mitm::printLine(int clientSocket, std::string const &msg, bool out)
 {
-	std::string	line;
-	size_t		lineStart;
-	size_t		lineEnd;
+	std::string line;
+	size_t lineStart;
+	size_t lineEnd;
 
 	line = this->lineBuf[clientSocket] + msg;
 	lineStart = 0;
@@ -65,10 +65,10 @@ void	Mitm::printLine(int clientSocket, std::string const &msg, bool out)
 	this->lineBuf[clientSocket] = line.substr(lineStart);
 }
 
-int		Mitm::loop(void)
+int Mitm::loop(void)
 {
-	struct epoll_event	events[this->TcpServer::getBacklog()];
-	int					readyFd;
+	struct epoll_event events[this->TcpServer::getBacklog()];
+	int readyFd;
 
 	std::signal(SIGINT, sigintHandler);
 	while (!g_sigint)
@@ -78,8 +78,7 @@ int		Mitm::loop(void)
 		{
 			if (events[i].events & (EPOLLRDHUP | EPOLLHUP))
 			{
-				if (events[i].data.fd == this->TcpServer::getFd()
-					|| events[i].data.fd == this->TcpClient::getFd())
+				if (events[i].data.fd == this->TcpServer::getFd() || events[i].data.fd == this->TcpClient::getFd())
 				{
 					std::signal(SIGINT, SIG_DFL);
 					std::cerr << "connection closed" << std::endl;
@@ -103,10 +102,10 @@ int		Mitm::loop(void)
 	return (EXIT_SUCCESS);
 }
 
-int		Mitm::receive_in(int clientSocket)
+int Mitm::receive_in(int clientSocket)
 {
-	TcpClient const	*client;
-	std::string				msg;
+	TcpClient const *client;
+	std::string msg;
 
 	if (this->TcpServer::getClient(client, clientSocket))
 		return (EXIT_FAILURE);
@@ -116,9 +115,9 @@ int		Mitm::receive_in(int clientSocket)
 	return (0 <= this->TcpClient::send(msg));
 }
 
-int		Mitm::receive_out(int clientSocket)
+int Mitm::receive_out(int clientSocket)
 {
-	std::string	msg;
+	std::string msg;
 
 	if (this->TcpClient::recv(msg, MSG_DONTWAIT) < 0)
 		return (EXIT_FAILURE);
@@ -126,10 +125,10 @@ int		Mitm::receive_out(int clientSocket)
 	return (this->TcpServer::broadcast(msg));
 }
 
-int		Mitm::connectClient(void)
+int Mitm::connectClient(void)
 {
-	TcpClient	const	*newClient;
-	struct epoll_event		event = {};
+	TcpClient const *newClient;
+	struct epoll_event event = {};
 
 	if (this->TcpServer::accept(newClient))
 		return (perror("accept"), EXIT_ERRNO);
@@ -145,22 +144,22 @@ int		Mitm::connectClient(void)
 	return (EXIT_SUCCESS);
 }
 
-int		Mitm::disconnectClient(int clientSocket)
+int Mitm::disconnectClient(int clientSocket)
 {
 	this->TcpServer::disconnectClient(clientSocket);
 	std::cout << "[" << clientSocket << "]: disconnect" << std::endl;
 	return (epoll_ctl(this->epoll, EPOLL_CTL_DEL, clientSocket, NULL));
 }
 
-int		Mitm::connect(std::string const &addr, std::string const &port)
+int Mitm::connect(std::string const &addr, std::string const &port)
 {
 	return (this->connect(addr, port, port));
 }
 
-int		Mitm::connect(std::string const &addr, std::string const &inPort, std::string const &outPort)
+int Mitm::connect(std::string const &addr, std::string const &inPort, std::string const &outPort)
 {
-	struct epoll_event  event = {};
-	int					error;
+	struct epoll_event event = {};
+	int error;
 
 	error = this->TcpClient::connect(addr, outPort);
 	if (error)
@@ -212,12 +211,12 @@ int		Mitm::connect(std::string const &addr, std::string const &inPort, std::stri
 	return (EXIT_SUCCESS);
 }
 
-bool	Mitm::isConnected(void)
+bool Mitm::isConnected(void)
 {
 	return (this->TcpClient::isConnected() && this->TcpServer::isConnected());
 }
 
-void	Mitm::disconnect(void)
+void Mitm::disconnect(void)
 {
 	this->TcpClient::disconnect();
 	this->TcpServer::disconnect();
@@ -225,23 +224,29 @@ void	Mitm::disconnect(void)
 		::close(epoll);
 }
 
-int		Mitm::getAddrError(void)
+int Mitm::getAddrError(void)
 {
 	if (this->TcpClient::getAddrError())
 		return (this->TcpClient::getAddrError());
 	return (this->TcpServer::getAddrError());
 }
 
-int	main(void)
+int main(int argc, char **argv)
 {
-	Mitm		mitm;
+	Mitm mitm;
 	std::string addr;
 	std::string inPort;
 	std::string outPort;
 
-	kdo::userinput("server ip: ", addr);
-	kdo::userinput("in port: ", inPort);
-	kdo::userinput("out port: ", outPort);
+	if (argc != 4)
+	{
+		std::cerr << "USAGE: " << argv[0] << " <target_host> <target_port> <listen_port>" << std::endl;
+		return (EXIT_FAILURE);
+	}
+
+	addr = argv[1];
+	outPort = argv[2];
+	inPort = argv[3];
 	if (mitm.connect(addr, inPort, outPort))
 		return (EXIT_FAILURE);
 	mitm.loop();
