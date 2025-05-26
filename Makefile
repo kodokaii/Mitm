@@ -22,9 +22,6 @@ $(NAME): $(KDOLIB) $(OBJ)
 $(KDOLIB): $(KDO)
 	$(MAKE) -C $(KDO)
 
-$(KDO):
-	$(CLONE) https://github.com/kodokaii/kdolib_cpp.git $(KDO)
-
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
